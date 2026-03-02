@@ -8,7 +8,7 @@ Transcrição 100% offline: captura de áudio, STT on-device (Faster-Whisper) e 
 - Orquestração desacoplada: captura → STT → agregação → formatação Markdown.
 - Configurável por variáveis de ambiente (endpoints, modelo, timeouts).
 
-## Arquitetura (alto nível)
+## Arquitetura 
 ```
 [Audio (mic/loopback)]
         |
