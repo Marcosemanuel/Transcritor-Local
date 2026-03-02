@@ -7,6 +7,14 @@ import { config } from './config.js';
 process.on('uncaughtException', err => fs.writeFileSync('crash.log', 'UE: ' + err.stack + '\n', { flag: 'a' }));
 process.on('unhandledRejection', err => fs.writeFileSync('crash.log', 'UR: ' + err.stack + '\n', { flag: 'a' }));
 
+const contentOptions = [
+  { key: '1', id: 'aula', label: 'Aula / Curso' },
+  { key: '2', id: 'reuniao', label: 'Reunião' },
+  { key: '3', id: 'entrevista', label: 'Entrevista' },
+  { key: '4', id: 'nota', label: 'Nota rápida' },
+  { key: '5', id: 'default', label: 'Genérico' },
+];
+
 const Header = ({ systemStatus, mode, isPaused }) => e(Box, { borderStyle: "single", borderColor: "cyan", padding: 1, width: "100%", justifyContent: "space-between" },
     e(Text, { bold: true, color: "cyan" }, `Transcrição Ativa[${mode === 'sistema' ? 'SISTEMA PC' : 'MICROFONE'}]`),
     e(Text, { color: isPaused ? 'yellow' : (systemStatus.includes('ERRO') ? 'red' : 'green') }, isPaused ? "PAUSADO" : systemStatus)
@@ -23,11 +31,11 @@ const TranscriptionPanel = ({ committed, partial }) => e(Box, { borderStyle: "ro
 
 const ControlsBox = () => e(Box, { borderStyle: "bold", borderColor: "blue", padding: 1, width: "100%", justifyContent: "center", gap: 3 },
     e(Text, { bold: true, color: "yellow" }, "P = Play / Pause"),
-    e(Text, { bold: true, color: "green" }, "F = Finish (Formatar e Salvar)")
+    e(Text, { bold: true, color: "green" }, "F = Finish (Escolher Formatação)")
 );
 
 const App = () => {
-    // Phases: 'source' -> 'naming' -> 'recording' -> 'formatting'
+    // Phases: 'source' -> 'naming' -> 'recording' -> 'content' -> 'formatting'
     const [phase, setPhase] = useState('source');
 
     const [audioMode, setAudioMode] = useState(null); // 'microfone' ou 'sistema'
@@ -37,6 +45,7 @@ const App = () => {
     const [committedText, setCommittedText] = useState("");
     const [partialText, setPartialText] = useState("");
     const [status, setStatus] = useState("Preparando...");
+    const [contentType, setContentType] = useState('default');
 
     const orchestratorRef = useRef(null);
 
@@ -55,6 +64,7 @@ const App = () => {
             setIsPaused(false);
             setAudioMode(null);
             setFilename("");
+            setContentType('default');
             setTimeout(() => setPhase('source'), 2500);
         });
         orchestratorRef.current = orchestrator;
@@ -91,6 +101,13 @@ const App = () => {
                 }
             } else if (input.toLowerCase() === 'f') {
                 orchestratorRef.current?.stop();
+                setPhase('content');
+            }
+        }
+        else if (phase === 'content') {
+            const choice = contentOptions.find(o => o.key === input);
+            if (choice) {
+                setContentType(choice.id);
                 setPhase('formatting');
             }
         }
@@ -101,15 +118,15 @@ const App = () => {
         setStatus("Ouvindo (Gravando)...");
         orchestratorRef.current?.startSession({ mode: audioMode, filename: filename.trim() });
         return () => {
-            orchestratorRef.current?.stop();
+          orchestratorRef.current?.stop();
         }
     }, [phase]);
 
     useEffect(() => {
         if (phase === 'formatting') {
-            orchestratorRef.current?.finalize();
+            orchestratorRef.current?.finalize({ contentType });
         }
-    }, [phase]);
+    }, [phase, contentType]);
 
     // Renderizações por Fase
     if (phase === 'source') {
@@ -124,6 +141,13 @@ const App = () => {
         return e(Box, { flexDirection: "column", borderStyle: "round", borderColor: "cyan", padding: 1, width: 80 },
             e(Text, { bold: true, color: "cyan", marginBottom: 1 }, "Qual o nome do arquivo desta sessão?"),
             e(Text, { color: "white" }, "Digite o nome e pressione ENTER: ", e(Text, { bold: true, color: "yellow" }, filename + "█"))
+        );
+    }
+
+    if (phase === 'content') {
+        return e(Box, { flexDirection: "column", borderStyle: "round", borderColor: "magenta", padding: 1, width: 80 },
+            e(Text, { bold: true, color: "magenta", marginBottom: 1 }, "Escolha o tipo de conteúdo para formatar:"),
+            ...contentOptions.map(opt => e(Text, { key: opt.id, color: "white" }, `${opt.key} - ${opt.label}`))
         );
     }
 

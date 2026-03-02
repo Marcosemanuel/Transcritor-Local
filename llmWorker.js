@@ -1,6 +1,7 @@
 ﻿import axios from 'axios';
 import fs from 'fs/promises';
 import path from 'path';
+import { contentPrompts } from './config.js';
 
 export class LLMWorker {
     constructor(onAlert) {
@@ -12,23 +13,18 @@ export class LLMWorker {
         this.maxRetries = Number(process.env.LLM_MAX_RETRIES || 2);
     }
 
-    async formatDocument(text, filename) {
+    buildPrompt(text, variant = 'default') {
+        const builder = contentPrompts[variant] || contentPrompts.default;
+        return builder(text);
+    }
+
+    async formatDocument(text, filename, variant = 'default') {
         if (this.isProcessing) return { success: false, reason: "Processamento simultaneo em andamento." };
         if (!text || text.trim() === '') return { success: false, reason: "Nenhum audio foi falado/captado. Gravacao vazia." };
         this.isProcessing = true;
         this.onAlert("Formatando documento com IA (aguarde ~10s a 15s)...");
 
-        const prompt = `Voce e um redator profissional e assistente de produtividade.
-Leia a transcricao bruta de audio abaixo. Sua tarefa e ESTRITAMENTE formatar e estruturar esse texto em um documento Markdown (.md) claro e coeso.
-
-Transcricao Bruta: "${text}"
-
-Regras Criticas:
-1. Responda ESTRITAMENTE com o texto formatado em Markdown. Sem introducoes como "Aqui esta o texto" ou "Entendido".
-2. Voce NAO DEVE inserir nenhum dado, afirmacao, detalhe ou numero que NAO FOI DITO CLARAMENTE no audio.
-3. Nao alucine, nao deduza e nao preencha buracos do seu proprio conhecimento. Aja exclusivamente como organizador do texto fornecido.
-4. Corrija a pontuacao e gramatica sem alterar o sentido original. Use paragrafos claros.
-5. Se for o caso, crie um Resumo Executivo e em seguida os Topicos Principais, todos usando marcacoes markdown.`;
+        const prompt = this.buildPrompt(text, variant);
 
         try {
             let response = null;

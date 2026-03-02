@@ -56,11 +56,11 @@ export class Orchestrator extends EventEmitter {
     }
   }
 
-  async finalize() {
+  async finalize({ contentType = 'default' } = {}) {
     const finalStr = `${this.full} ${this.partial}`.trim();
     const fname = (this.filename || 'transcricao').trim();
     this.emit('status', { message: 'Finalizando e Processando via LLM...', level: 'info' });
-    const result = await this.llmWorker.formatDocument(finalStr, fname);
+    const result = await this.llmWorker.formatDocument(finalStr, fname, contentType);
     this.emit('finalized', result);
     this.resetState();
   }
