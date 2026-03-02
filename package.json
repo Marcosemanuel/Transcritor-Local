@@ -1,11 +1,11 @@
-{
+﻿{
   "name": "transcritor-local",
   "version": "1.0.0",
-  "description": "MVP de transcrição local offline",
+  "description": "MVP de transcriÃ§Ã£o local offline",
   "type": "module",
   "main": "simulator.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node bootstrap.js"
   },
   "dependencies": {
     "axios": "^1.13.6",
